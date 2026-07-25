@@ -11,6 +11,7 @@
     query: "",
     category: "all",
     author: "",     // فلتر المؤلف (نص مطابق تمامًا)
+    pubType: null,  // فلتر نوع إصدار الهيئة (null=بلا فلتر، ""=غير مُصنّف)
     sort: "title",
     shown: PAGE_SIZE,
     results: ALL,
@@ -33,6 +34,8 @@
     dialogBody: document.getElementById("dialog-body"),
     stats: document.getElementById("stats"),
     topAuthorsList: document.getElementById("top-authors-list"),
+    hayTypes: document.getElementById("hay-types"),
+    haySub: document.getElementById("hay-sub"),
     authorSearch: document.getElementById("author-search"),
     authorClear: document.getElementById("author-clear"),
     authorList: document.getElementById("author-list"),
@@ -165,6 +168,41 @@
     }).join("");
   }
 
+  // ===== لوحة إصدارات الهيئة حسب النوع =====
+  function renderHayTypes() {
+    var hay = ALL.filter(function (b) { return b.category === HAY_CATEGORY; });
+    var titles = {}, copies = {};
+    hay.forEach(function (b) {
+      var t = b.type || "";
+      titles[t] = (titles[t] || 0) + 1;
+      copies[t] = (copies[t] || 0) + (b.copies != null ? b.copies : 0);
+    });
+    var types = Object.keys(titles).sort(function (a, b) {
+      if (!a) return 1; if (!b) return -1;               // «غير مصنّف» أخيرًا
+      return titles[b] - titles[a] || coll.compare(a, b);
+    });
+    var maxCount = Math.max.apply(null, types.map(function (t) { return titles[t]; }));
+    var totalCopies = hay.reduce(function (s, b) { return s + (b.copies != null ? b.copies : 0); }, 0);
+    el.haySub.textContent = fmt(hay.length) + " إصدارًا · " + fmt(totalCopies) + " نسخة";
+
+    el.hayTypes.innerHTML = types.map(function (t) {
+      var label = t || "غير مُصنّف";
+      var w = Math.round((titles[t] / maxCount) * 100);
+      return '<button class="hay-type" type="button" data-type="' + escapeHtml(t) + '" aria-pressed="false" ' +
+        'title="عرض إصدارات: ' + escapeHtml(label) + '">' +
+        '<div class="ht-top"><span class="ht-label">' + escapeHtml(label) + "</span>" +
+        '<span class="ht-count">' + fmt(titles[t]) + "</span></div>" +
+        '<div class="ht-bar"><i style="width:' + w + '%"></i></div>' +
+        '<div class="ht-copies">' + fmt(copies[t]) + " نسخة</div></button>";
+    }).join("");
+  }
+  function updateHaySelection() {
+    Array.prototype.forEach.call(el.hayTypes.querySelectorAll(".hay-type"), function (chip) {
+      var active = state.pubType !== null && state.category === HAY_CATEGORY && chip.dataset.type === state.pubType;
+      chip.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
   // ===== الترشيح والترتيب =====
   function currentTokens() { return normalize(state.query).split(/\s+/).filter(Boolean); }
 
@@ -174,6 +212,7 @@
     var res = ALL.filter(function (b) {
       if (cat !== "all" && b.category !== cat) return false;
       if (author && b.author !== author) return false;
+      if (state.pubType !== null && b.type !== state.pubType) return false;
       if (!tokens.length) return true;
       var hay = b._t + " " + b._a;
       for (var i = 0; i < tokens.length; i++) if (hay.indexOf(tokens[i]) === -1) return false;
@@ -210,6 +249,7 @@
       state.results = computeResults();
       state.shown = PAGE_SIZE;
       el.results.innerHTML = "";
+      updateHaySelection();
     }
     var res = state.results, total = res.length;
     if (total === 0) {
@@ -235,6 +275,7 @@
     var s = "عدد النتائج: " + fmt(total) + " كتاب";
     if (state.category !== "all") s += " · " + '<span class="active-filter">' + escapeHtml(state.category) + "</span>";
     if (state.author) s += " · " + '<span class="active-filter">✍️ ' + escapeHtml(state.author) + "</span>";
+    if (state.pubType !== null && state.category === HAY_CATEGORY) s += " · " + '<span class="active-filter">🏛️ ' + escapeHtml(state.pubType || "غير مُصنّف") + "</span>";
     if (state.query) s += " · بحث: «" + escapeHtml(state.query) + "»";
     return s;
   }
@@ -254,7 +295,7 @@
     el.chips.innerHTML = html;
     Array.prototype.forEach.call(el.chips.querySelectorAll(".chip"), function (chip) {
       chip.addEventListener("click", function () {
-        state.category = chip.dataset.cat; updateChipSelection(); render(true);
+        state.category = chip.dataset.cat; state.pubType = null; updateChipSelection(); render(true);
         el.results.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
@@ -342,11 +383,12 @@
       el.count.textContent = "لم يتم العثور على ملف البيانات (assets/books-data.js). شغّل أداة التحويل أولًا.";
       return;
     }
-    el.subtitle.textContent = "هيئة حقوق الإنسان";
+    el.subtitle.textContent = "الفهرس الإلكتروني";
     el.footerCount.textContent = fmt(ALL.length) + " كتاب";
 
     renderStats();
     renderTopAuthors();
+    renderHayTypes();
     buildChips();
     render(true);
 
@@ -357,7 +399,7 @@
     });
     el.sort.addEventListener("change", function () { state.sort = el.sort.value; render(true); });
     el.resetAll.addEventListener("click", function () {
-      state.query = ""; state.category = "all"; setAuthor("");
+      state.query = ""; state.category = "all"; state.pubType = null; setAuthor("");
       el.search.value = ""; el.clear.hidden = true; updateChipSelection(); render(true);
     });
 
@@ -378,6 +420,17 @@
       if (li) setAuthor(li.dataset.author);
     });
     el.authorClear.addEventListener("click", function () { setAuthor(""); el.authorSearch.focus(); });
+
+    // لوحة إصدارات الهيئة — نقرة تفعّل فلتر النوع
+    el.hayTypes.addEventListener("click", function (e) {
+      var chip = e.target.closest(".hay-type");
+      if (!chip) return;
+      var t = chip.dataset.type;
+      if (state.category === HAY_CATEGORY && state.pubType === t) { state.category = "all"; state.pubType = null; }
+      else { state.category = HAY_CATEGORY; state.pubType = t; }
+      updateChipSelection(); render(true);
+      el.results.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     document.addEventListener("click", function (e) {
       if (!e.target.closest("#author-filter")) hideAuthorList();
     });

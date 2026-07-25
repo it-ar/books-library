@@ -119,6 +119,22 @@ def parse_category_sheet(ws):
     return books
 
 
+# توحيد أنواع إصدارات الهيئة (توحيد المفرد/الجمع والتهجئة)
+HAY_TYPE_NORMALIZE = {
+    "تقرير": "تقرير", "تقارير": "تقرير",
+    "كتاب": "كتاب", "كتب": "كتاب",
+    "مجلة": "مجلة", "مجلات": "مجلة", "مجله": "مجلة",
+    "كتيب": "كتيب", "كتيبات": "كتيب", "كتيب أطفال": "كتيب",
+    "ورقة": "ورقة", "أوراق": "ورقة", "اوراق": "ورقة",
+    "وثيقة": "وثيقة", "وثائق": "وثيقة",
+}
+
+
+def normalize_hay_type(t):
+    t = re.sub(r"\s+", " ", (t or "").strip())
+    return HAY_TYPE_NORMALIZE.get(t, t)
+
+
 def parse_hay_sheet(ws):
     """ورقة إصدارات الهيئة: أعمدة تبدأ من الفهرس 11."""
     books = []
@@ -147,7 +163,7 @@ def parse_hay_sheet(ws):
             "copies": copies,
             "box": box,
             "year": year,
-            "type": btype,
+            "type": normalize_hay_type(btype),
         })
     return books
 

@@ -75,11 +75,9 @@ body {
   color: #fff; box-shadow: 0 2px 14px rgba(13,40,55,.18);
 }
 .header-inner { max-width: var(--maxw); margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 13px; }
-.brand-logo {
-  background: #fff; width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,.15); flex: none;
-}
+.brand { display: flex; align-items: center; gap: 15px; }
+.brand-logo-img { height: 46px; width: auto; flex: none; display: block; }
+.brand-divider { width: 1px; height: 40px; background: rgba(255,255,255,.35); flex: none; }
 .brand-text h1 { margin: 0; font-size: 1.28rem; font-weight: 800; letter-spacing: -.2px; color: #fff; }
 .brand-text p { margin: 0; font-size: .82rem; color: rgba(255,255,255,.82); }
 
@@ -134,6 +132,28 @@ body {
 .top-authors-list li:nth-child(2) .ta-rank { background: var(--brand-light); color: var(--brand-dark); }
 .ta-name { flex: 1 1 auto; font-size: .88rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ta-count { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ===== لوحة إصدارات الهيئة ===== */
+.hay-dash { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px 18px; }
+.hay-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.hay-head .panel-title { margin: 0; }
+.hay-sub { margin: 0; font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hay-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.hay-type {
+  text-align: start; font-family: inherit; cursor: pointer; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 13px; display: flex; flex-direction: column; gap: 8px;
+  transition: border-color .12s, transform .12s;
+}
+.hay-type:hover { border-color: var(--brand); transform: translateY(-2px); }
+.hay-type[aria-pressed="true"] { border-color: var(--brand); background: var(--accent-soft); }
+.hay-type:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ht-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ht-label { font-size: .92rem; font-weight: 700; color: var(--text); }
+.ht-count { font-size: 1.15rem; font-weight: 800; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.ht-bar { height: 6px; background: color-mix(in srgb, var(--brand) 12%, transparent); border-radius: 999px; overflow: hidden; }
+.ht-bar > i { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+.hay-type[data-type=""] .ht-bar > i { background: var(--muted); }
+.ht-copies { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* ===== Controls ===== */
 .controls { max-width: var(--maxw); margin: 0 auto; padding: 20px 20px 6px; }

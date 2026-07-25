@@ -14,18 +14,11 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="brand">
-        <span class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 100 100" width="46" height="46" role="img" aria-label="شعار هيئة حقوق الإنسان">
-            <path d="M 83.53 65.64 A 37 37 0 0 1 17.96 68.50" fill="none" stroke="var(--brand-dark)" stroke-width="11" stroke-linecap="round"/>
-            <path d="M 16.47 34.36 A 37 37 0 0 1 82.04 31.50" fill="none" stroke="var(--brand-dark)" stroke-width="11" stroke-linecap="round"/>
-            <rect x="31" y="30" width="38" height="10" rx="2" fill="var(--brand-dark)"/>
-            <rect x="44.5" y="30" width="11" height="38" rx="1.5" fill="var(--brand-dark)"/>
-            <path d="M 38 60 L 50 71 L 62 60" fill="none" stroke="var(--brand-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
+        <img class="brand-logo-img" src="assets/logo-hrc.svg" alt="شعار هيئة حقوق الإنسان" width="150" height="46" />
+        <span class="brand-divider" aria-hidden="true"></span>
         <div class="brand-text">
           <h1>قائمة الكتب</h1>
-          <p id="subtitle">هيئة حقوق الإنسان</p>
+          <p id="subtitle">الفهرس الإلكتروني</p>
         </div>
       </div>
 
@@ -49,6 +42,15 @@
           <h2 class="panel-title"><span aria-hidden="true">🏆</span> أكثر المؤلفين إنتاجًا</h2>
           <ol class="top-authors-list" id="top-authors-list"></ol>
         </div>
+      </div>
+
+      <!-- لوحة إصدارات الهيئة حسب النوع -->
+      <div class="hay-dash">
+        <div class="hay-head">
+          <h2 class="panel-title"><span aria-hidden="true">🏛️</span> إصدارات الهيئة حسب النوع</h2>
+          <p class="hay-sub" id="hay-sub"></p>
+        </div>
+        <div class="hay-types" id="hay-types"></div>
       </div>
     </section>
 
