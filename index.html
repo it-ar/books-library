@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مكتبة الكتب — البحث والتصفّح</title>
-  <meta name="description" content="صفحة للبحث في كتب المكتبة وتصفّحها حسب التصنيف" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <title>مكتبة هيئة حقوق الإنسان — البحث والتصفّح</title>
+  <meta name="description" content="لوحة معلومات وبحث في كتب مكتبة هيئة حقوق الإنسان" />
   <link rel="stylesheet" href="assets/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
 </head>
@@ -15,9 +14,17 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="brand">
-        <span class="brand-icon" aria-hidden="true">📚</span>
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="46" height="46" role="img" aria-label="شعار هيئة حقوق الإنسان">
+            <path d="M 83.53 65.64 A 37 37 0 0 1 17.96 68.50" fill="none" stroke="var(--brand-dark)" stroke-width="11" stroke-linecap="round"/>
+            <path d="M 16.47 34.36 A 37 37 0 0 1 82.04 31.50" fill="none" stroke="var(--brand-dark)" stroke-width="11" stroke-linecap="round"/>
+            <rect x="31" y="30" width="38" height="10" rx="2" fill="var(--brand-dark)"/>
+            <rect x="44.5" y="30" width="11" height="38" rx="1.5" fill="var(--brand-dark)"/>
+            <path d="M 38 60 L 50 71 L 62 60" fill="none" stroke="var(--brand-light)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
         <div class="brand-text">
-          <h1>مكتبة الكتب</h1>
+          <h1>مكتبة هيئة حقوق الإنسان</h1>
           <p id="subtitle">جارٍ تحميل البيانات…</p>
         </div>
       </div>
@@ -34,20 +41,40 @@
   </header>
 
   <main>
+    <!-- لوحة المعلومات -->
+    <section class="dashboard" aria-label="لوحة المعلومات">
+      <div class="dash-inner">
+        <div class="stats" id="stats"></div>
+        <div class="top-authors" id="top-authors">
+          <h2 class="panel-title"><span aria-hidden="true">🏆</span> أكثر المؤلفين إنتاجًا</h2>
+          <ol class="top-authors-list" id="top-authors-list"></ol>
+        </div>
+      </div>
+    </section>
+
     <section class="controls" aria-label="أدوات التصفية">
       <div class="controls-inner">
         <div class="chips" id="category-chips" role="tablist" aria-label="التصنيفات"></div>
-        <div class="controls-right">
-          <label class="sort-field">
-            <span>ترتيب:</span>
-            <select id="sort" aria-label="ترتيب النتائج">
-              <option value="title">حسب الاسم (أ-ي)</option>
-              <option value="author">حسب المؤلف</option>
-              <option value="copies">حسب عدد النسخ</option>
-              <option value="category">حسب التصنيف</option>
-            </select>
-          </label>
+      </div>
+      <div class="controls-row">
+        <div class="author-filter" id="author-filter">
+          <label for="author-search" class="af-label">فلترة بالمؤلف:</label>
+          <div class="af-box">
+            <input id="author-search" type="text" autocomplete="off" placeholder="اكتب اسم المؤلف…"
+                   aria-label="فلترة بالمؤلف" role="combobox" aria-expanded="false" aria-controls="author-list" />
+            <button id="author-clear" class="af-clear" type="button" aria-label="إلغاء فلتر المؤلف" hidden>&times;</button>
+            <ul id="author-list" class="af-list" role="listbox" hidden></ul>
+          </div>
         </div>
+        <label class="sort-field">
+          <span>ترتيب:</span>
+          <select id="sort" aria-label="ترتيب النتائج">
+            <option value="title">حسب الاسم (أ-ي)</option>
+            <option value="author">حسب المؤلف</option>
+            <option value="copies">حسب عدد النسخ</option>
+            <option value="category">حسب التصنيف</option>
+          </select>
+        </label>
       </div>
       <p class="result-count" id="result-count" aria-live="polite"></p>
     </section>
@@ -65,7 +92,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>مكتبة الكتب · <span id="footer-count"></span></p>
+    <p>مكتبة هيئة حقوق الإنسان · <span id="footer-count"></span></p>
   </footer>
 
   <!-- نافذة تفاصيل الكتاب -->

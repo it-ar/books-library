@@ -1,21 +1,21 @@
-/* مكتبة الكتب — منطق البحث والعرض */
+/* مكتبة هيئة حقوق الإنسان — منطق لوحة المعلومات والبحث والعرض */
 (function () {
   "use strict";
 
   var DATA = (window.BOOKS_DATA && window.BOOKS_DATA.books) ? window.BOOKS_DATA : { books: [], categories: {}, count: 0 };
   var ALL = DATA.books || [];
   var PAGE_SIZE = 48;
+  var HAY_CATEGORY = "إصدارات الهيئة";
 
-  // الحالة
   var state = {
     query: "",
     category: "all",
+    author: "",     // فلتر المؤلف (نص مطابق تمامًا)
     sort: "title",
     shown: PAGE_SIZE,
     results: ALL,
   };
 
-  // عناصر الصفحة
   var el = {
     search: document.getElementById("search"),
     clear: document.getElementById("clear-search"),
@@ -31,32 +31,33 @@
     footerCount: document.getElementById("footer-count"),
     dialog: document.getElementById("book-dialog"),
     dialogBody: document.getElementById("dialog-body"),
+    stats: document.getElementById("stats"),
+    topAuthorsList: document.getElementById("top-authors-list"),
+    authorSearch: document.getElementById("author-search"),
+    authorClear: document.getElementById("author-clear"),
+    authorList: document.getElementById("author-list"),
   };
 
-  // ===== أدوات مساعدة =====
+  // ===== أدوات =====
   var arabicNum = new Intl.NumberFormat("ar-EG");
   function fmt(n) { return arabicNum.format(n); }
+  var coll = new Intl.Collator("ar");
 
-  // تطبيع حرف واحد: يعيد "" (حرف يُحذف كالتشكيل) أو حرفًا موحّدًا للبحث
   function normChar(ch) {
-    if (/[ً-ْٰـ]/.test(ch)) return ""; // تشكيل + تطويل
-    if (/[أإآٱ]/.test(ch)) return "ا"; // أ إ آ ٱ -> ا
-    if (ch === "ى") return "ي"; // ى -> ي
-    if (ch === "ة") return "ه"; // ة -> ه
-    if (ch === "ؤ") return "و"; // ؤ -> و
-    if (ch === "ئ") return "ي"; // ئ -> ي
+    if (/[ً-ْٰـ]/.test(ch)) return "";
+    if (/[أإآٱ]/.test(ch)) return "ا";
+    if (ch === "ى") return "ي";
+    if (ch === "ة") return "ه";
+    if (ch === "ؤ") return "و";
+    if (ch === "ئ") return "ي";
     return ch.toLowerCase();
   }
-
-  // تطبيع النص العربي للبحث
   function normalize(s) {
     if (!s) return "";
     var out = "";
     for (var i = 0; i < s.length; i++) out += normChar(s[i]);
     return out.trim();
   }
-
-  // تطبيع مع خريطة تربط كل موضع في النص المطبّع بموضعه الأصلي
   function normalizeWithMap(s) {
     var norm = "", map = [];
     for (var i = 0; i < s.length; i++) {
@@ -66,7 +67,6 @@
     return { norm: norm, map: map };
   }
 
-  // فهرس بحث مُطبّع مسبقًا لتسريع الترشيح
   ALL.forEach(function (b) {
     b._t = normalize(b.title);
     b._a = normalize(b.author);
@@ -78,7 +78,6 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
-  // تظليل الكلمات المطابقة داخل النص الأصلي (باستخدام خريطة المواضع)
   function highlight(original, tokens) {
     if (!tokens.length) return escapeHtml(original);
     var nm = normalizeWithMap(original);
@@ -88,9 +87,7 @@
       if (!tok) return;
       var from = 0, idx;
       while ((idx = norm.indexOf(tok, from)) !== -1) {
-        var oStart = map[idx];
-        var oEnd = map[idx + tok.length - 1] + 1;
-        ranges.push([oStart, oEnd]);
+        ranges.push([map[idx], map[idx + tok.length - 1] + 1]);
         from = idx + tok.length;
       }
     });
@@ -112,26 +109,74 @@
     return out;
   }
 
-  // ===== الترشيح والترتيب =====
-  function currentTokens() {
-    return normalize(state.query).split(/\s+/).filter(Boolean);
+  // ===== إحصاءات مشتقة =====
+  var authorCounts = {};   // اسم المؤلف -> عدد الكتب
+  ALL.forEach(function (b) {
+    if (b.author) authorCounts[b.author] = (authorCounts[b.author] || 0) + 1;
+  });
+  var authorNames = Object.keys(authorCounts);
+  authorNames.forEach(function (a) { /* فهرس مُطبّع للبحث */ });
+  var authorIndex = authorNames.map(function (a) { return { name: a, count: authorCounts[a], n: normalize(a) }; });
+
+  function computeStats() {
+    var totalBooks = ALL.length;
+    var totalCopies = 0, hayCount = 0;
+    ALL.forEach(function (b) {
+      totalCopies += (b.copies != null ? b.copies : 0);
+      if (b.category === HAY_CATEGORY) hayCount++;
+    });
+    return {
+      books: totalBooks,
+      copies: totalCopies,
+      authors: authorNames.length,
+      hay: hayCount,
+      categories: Object.keys(DATA.categories || {}).length || countCats(),
+    };
   }
+
+  function renderStats() {
+    var s = computeStats();
+    var cards = [
+      { ico: "📚", value: s.books, label: "إجمالي الكتب" },
+      { ico: "📦", value: s.copies, label: "إجمالي النسخ الحالية" },
+      { ico: "✍️", value: s.authors, label: "إجمالي المؤلفين" },
+      { ico: "🏛️", value: s.hay, label: "إصدارات الهيئة" },
+    ];
+    el.stats.innerHTML = cards.map(function (c) {
+      return '<div class="stat-card">' +
+        '<div class="stat-ico" aria-hidden="true">' + c.ico + "</div>" +
+        '<div class="stat-body"><span class="stat-value">' + fmt(c.value) + "</span>" +
+        '<span class="stat-label">' + c.label + "</span></div></div>";
+    }).join("");
+  }
+
+  function renderTopAuthors() {
+    var top = authorIndex.slice().sort(function (a, b) {
+      return b.count - a.count || coll.compare(a.name, b.name);
+    }).slice(0, 8);
+    el.topAuthorsList.innerHTML = top.map(function (a, i) {
+      return '<li data-author="' + escapeHtml(a.name) + '" title="عرض كتب هذا المؤلف">' +
+        '<span class="ta-rank">' + fmt(i + 1) + "</span>" +
+        '<span class="ta-name">' + escapeHtml(a.name) + "</span>" +
+        '<span class="ta-count">' + fmt(a.count) + " كتاب</span></li>";
+    }).join("");
+  }
+
+  // ===== الترشيح والترتيب =====
+  function currentTokens() { return normalize(state.query).split(/\s+/).filter(Boolean); }
 
   function computeResults() {
     var tokens = currentTokens();
-    var cat = state.category;
+    var cat = state.category, author = state.author;
     var res = ALL.filter(function (b) {
       if (cat !== "all" && b.category !== cat) return false;
+      if (author && b.author !== author) return false;
       if (!tokens.length) return true;
       var hay = b._t + " " + b._a;
-      for (var i = 0; i < tokens.length; i++) {
-        if (hay.indexOf(tokens[i]) === -1) return false;
-      }
+      for (var i = 0; i < tokens.length; i++) if (hay.indexOf(tokens[i]) === -1) return false;
       return true;
     });
-
     var sort = state.sort;
-    var coll = new Intl.Collator("ar");
     res.sort(function (a, b) {
       switch (sort) {
         case "author": return coll.compare(a.author || "￿", b.author || "￿") || coll.compare(a.title, b.title);
@@ -145,20 +190,15 @@
 
   // ===== العرض =====
   function cardHtml(b, tokens) {
-    var authorHtml = b.author
-      ? '<span aria-hidden="true">✍️</span> ' + highlight(b.author, tokens)
-      : "مؤلف غير محدد";
+    var authorHtml = b.author ? '<span aria-hidden="true">✍️</span> ' + highlight(b.author, tokens) : "مؤلف غير محدد";
     var meta = '<span class="badge">' + escapeHtml(b.category) + "</span>";
     if (b.copies != null) meta += '<span class="pill">النسخ: ' + fmt(b.copies) + "</span>";
     if (b.year) meta += '<span class="pill">' + fmt(b.year) + "</span>";
     if (b.type) meta += '<span class="pill">' + escapeHtml(b.type) + "</span>";
-
-    return '<article class="card" tabindex="0" role="button" data-id="' + b.id + '" ' +
-      'aria-label="' + escapeHtml(b.title) + '">' +
+    return '<article class="card" tabindex="0" role="button" data-id="' + b.id + '" aria-label="' + escapeHtml(b.title) + '">' +
       '<h3 class="card-title">' + highlight(b.title, tokens) + "</h3>" +
       '<div class="card-author' + (b.author ? "" : " empty") + '">' + authorHtml + "</div>" +
-      '<div class="card-meta">' + meta + "</div>" +
-      "</article>";
+      '<div class="card-meta">' + meta + "</div></article>";
   }
 
   function render(reset) {
@@ -168,44 +208,37 @@
       state.shown = PAGE_SIZE;
       el.results.innerHTML = "";
     }
-    var res = state.results;
-    var total = res.length;
-
-    // العدّاد
+    var res = state.results, total = res.length;
     if (total === 0) {
-      el.count.textContent = "";
-      el.results.hidden = true;
-      el.empty.hidden = false;
-      el.loadStatus.textContent = "";
+      el.count.innerHTML = countLabel(0);
+      el.results.hidden = true; el.empty.hidden = false; el.loadStatus.textContent = "";
       return;
     }
-    el.results.hidden = false;
-    el.empty.hidden = true;
-    el.count.textContent = "عدد النتائج: " + fmt(total) + " كتاب" +
-      (state.category !== "all" ? " في «" + state.category + "»" : "") +
-      (state.query ? " · بحث: «" + state.query + "»" : "");
+    el.results.hidden = false; el.empty.hidden = true;
+    el.count.innerHTML = countLabel(total);
 
-    // عرض تدريجي
     var start = el.results.childElementCount;
     var end = Math.min(state.shown, total);
     if (end <= start && !reset) return;
-
     var html = "";
-    for (var i = (reset ? 0 : start); i < end; i++) {
-      html += cardHtml(res[i], tokens);
-    }
-    if (reset) el.results.innerHTML = html;
-    else el.results.insertAdjacentHTML("beforeend", html);
-
+    for (var i = (reset ? 0 : start); i < end; i++) html += cardHtml(res[i], tokens);
+    if (reset) el.results.innerHTML = html; else el.results.insertAdjacentHTML("beforeend", html);
     el.loadStatus.textContent = end < total
       ? "عُرض " + fmt(end) + " من " + fmt(total) + " — مرّر للأسفل للمزيد"
       : "تم عرض كل النتائج (" + fmt(total) + ")";
   }
 
+  function countLabel(total) {
+    var s = "عدد النتائج: " + fmt(total) + " كتاب";
+    if (state.category !== "all") s += " · " + '<span class="active-filter">' + escapeHtml(state.category) + "</span>";
+    if (state.author) s += " · " + '<span class="active-filter">✍️ ' + escapeHtml(state.author) + "</span>";
+    if (state.query) s += " · بحث: «" + escapeHtml(state.query) + "»";
+    return s;
+  }
+
   function loadMore() {
     if (state.shown >= state.results.length) return;
-    state.shown += PAGE_SIZE;
-    render(false);
+    state.shown += PAGE_SIZE; render(false);
   }
 
   // ===== شرائح التصنيفات =====
@@ -213,17 +246,13 @@
     var counts = {};
     ALL.forEach(function (b) { counts[b.category] = (counts[b.category] || 0) + 1; });
     var cats = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
-
     var html = chipHtml("all", "الكل", ALL.length);
     cats.forEach(function (c) { html += chipHtml(c, c, counts[c]); });
     el.chips.innerHTML = html;
-
     Array.prototype.forEach.call(el.chips.querySelectorAll(".chip"), function (chip) {
       chip.addEventListener("click", function () {
-        state.category = chip.dataset.cat;
-        updateChipSelection();
-        render(true);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        state.category = chip.dataset.cat; updateChipSelection(); render(true);
+        el.results.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
     updateChipSelection();
@@ -238,6 +267,39 @@
     });
   }
 
+  // ===== فلتر المؤلف (قائمة منسدلة قابلة للبحث) =====
+  function setAuthor(name) {
+    state.author = name || "";
+    el.authorSearch.value = name || "";
+    el.authorClear.hidden = !name;
+    hideAuthorList();
+    render(true);
+  }
+  function openAuthorList(filterText) {
+    var q = normalize(filterText);
+    var matches = authorIndex.filter(function (a) { return !q || a.n.indexOf(q) !== -1; });
+    matches.sort(function (a, b) { return b.count - a.count || coll.compare(a.name, b.name); });
+    var shown = matches.slice(0, 60);
+    if (!shown.length) {
+      el.authorList.innerHTML = '<li class="af-empty">لا يوجد مؤلف مطابق</li>';
+    } else {
+      el.authorList.innerHTML = shown.map(function (a) {
+        return '<li role="option" data-author="' + escapeHtml(a.name) + '">' +
+          "<span>" + escapeHtml(a.name) + '</span><span class="af-c">' + fmt(a.count) + " كتاب</span></li>";
+      }).join("");
+      if (matches.length > shown.length) {
+        el.authorList.insertAdjacentHTML("beforeend",
+          '<li class="af-empty">…و ' + fmt(matches.length - shown.length) + " مؤلفًا آخر، تابع الكتابة للتضييق</li>");
+      }
+    }
+    el.authorList.hidden = false;
+    el.authorSearch.setAttribute("aria-expanded", "true");
+  }
+  function hideAuthorList() {
+    el.authorList.hidden = true;
+    el.authorSearch.setAttribute("aria-expanded", "false");
+  }
+
   // ===== نافذة التفاصيل =====
   function openDialog(id) {
     var b = ALL.find(function (x) { return x.id === Number(id); });
@@ -249,13 +311,11 @@
     if (b.box) items += dlgItem("رقم الصندوق", b.box);
     if (b.year) items += dlgItem("سنة الإصدار", fmt(b.year));
     if (b.type) items += dlgItem("النوع", b.type);
-
     el.dialogBody.innerHTML =
       '<span class="badge dlg-badge">' + escapeHtml(b.category) + "</span>" +
       "<h2>" + escapeHtml(b.title) + "</h2>" +
       '<p class="dlg-author">' + (b.author ? "✍️ " + escapeHtml(b.author) : "مؤلف غير محدد") + "</p>" +
       '<div class="dlg-grid">' + items + "</div>";
-
     if (typeof el.dialog.showModal === "function") el.dialog.showModal();
     else el.dialog.setAttribute("open", "");
   }
@@ -263,15 +323,14 @@
     return '<div class="dlg-item"><div class="k">' + escapeHtml(k) + '</div><div class="v">' + escapeHtml(v) + "</div></div>";
   }
 
-  // ===== المستمعات =====
+  function countCats() { var s = {}; ALL.forEach(function (b) { s[b.category] = 1; }); return Object.keys(s).length; }
+
+  // ===== التهيئة =====
   var debTimer;
   function onSearch() {
     el.clear.hidden = !el.search.value;
     clearTimeout(debTimer);
-    debTimer = setTimeout(function () {
-      state.query = el.search.value;
-      render(true);
-    }, 160);
+    debTimer = setTimeout(function () { state.query = el.search.value; render(true); }, 160);
   }
 
   function init() {
@@ -280,51 +339,80 @@
       el.count.textContent = "لم يتم العثور على ملف البيانات (assets/books-data.js). شغّل أداة التحويل أولًا.";
       return;
     }
-    el.subtitle.textContent = fmt(ALL.length) + " كتاب في " + fmt(Object.keys(DATA.categories || {}).length || countCats()) + " تصنيفًا";
-    el.footerCount.textContent = fmt(ALL.length) + " كتاب";
+    var s = computeStats();
+    el.subtitle.textContent = fmt(s.books) + " كتاب · " + fmt(s.authors) + " مؤلف · " + fmt(s.categories) + " تصنيفًا";
+    el.footerCount.textContent = fmt(s.books) + " كتاب";
 
+    renderStats();
+    renderTopAuthors();
     buildChips();
     render(true);
 
+    // البحث العام
     el.search.addEventListener("input", onSearch);
     el.clear.addEventListener("click", function () {
       el.search.value = ""; el.clear.hidden = true; state.query = ""; render(true); el.search.focus();
     });
     el.sort.addEventListener("change", function () { state.sort = el.sort.value; render(true); });
     el.resetAll.addEventListener("click", function () {
-      state.query = ""; state.category = "all"; el.search.value = ""; el.clear.hidden = true;
-      updateChipSelection(); render(true);
+      state.query = ""; state.category = "all"; setAuthor("");
+      el.search.value = ""; el.clear.hidden = true; updateChipSelection(); render(true);
     });
 
+    // أكثر المؤلفين — نقرة تفعّل الفلتر
+    el.topAuthorsList.addEventListener("click", function (e) {
+      var li = e.target.closest("li[data-author]");
+      if (li) { setAuthor(li.dataset.author); el.results.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    });
+
+    // فلتر المؤلف
+    el.authorSearch.addEventListener("focus", function () { openAuthorList(el.authorSearch.value); });
+    el.authorSearch.addEventListener("input", function () {
+      el.authorClear.hidden = !el.authorSearch.value;
+      openAuthorList(el.authorSearch.value);
+    });
+    el.authorList.addEventListener("click", function (e) {
+      var li = e.target.closest("li[data-author]");
+      if (li) setAuthor(li.dataset.author);
+    });
+    el.authorClear.addEventListener("click", function () { setAuthor(""); el.authorSearch.focus(); });
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest("#author-filter")) hideAuthorList();
+    });
+    el.authorSearch.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { hideAuthorList(); }
+      else if (e.key === "Enter") {
+        e.preventDefault();
+        var first = el.authorList.querySelector("li[data-author]");
+        if (first) setAuthor(first.dataset.author);
+      }
+    });
+
+    // بطاقات الكتب
     el.results.addEventListener("click", function (e) {
-      var card = e.target.closest(".card");
-      if (card) openDialog(card.dataset.id);
+      var card = e.target.closest(".card"); if (card) openDialog(card.dataset.id);
     });
     el.results.addEventListener("keydown", function (e) {
       if (e.key !== "Enter" && e.key !== " ") return;
-      var card = e.target.closest(".card");
-      if (card) { e.preventDefault(); openDialog(card.dataset.id); }
+      var card = e.target.closest(".card"); if (card) { e.preventDefault(); openDialog(card.dataset.id); }
     });
 
     // تمرير لانهائي
     if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting) loadMore();
-      }, { rootMargin: "600px" }).observe(el.sentinel);
+      new IntersectionObserver(function (entries) { if (entries[0].isIntersecting) loadMore(); },
+        { rootMargin: "600px" }).observe(el.sentinel);
     } else {
       window.addEventListener("scroll", function () {
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 600) loadMore();
       });
     }
 
-    // اختصار «/» للتركيز على البحث
+    // اختصار «/» للبحث
     document.addEventListener("keydown", function (e) {
-      if (e.key === "/" && document.activeElement !== el.search) { e.preventDefault(); el.search.focus(); }
+      if (e.key === "/" && document.activeElement !== el.search && document.activeElement !== el.authorSearch) {
+        e.preventDefault(); el.search.focus();
+      }
     });
-  }
-
-  function countCats() {
-    var s = {}; ALL.forEach(function (b) { s[b.category] = 1; }); return Object.keys(s).length;
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
