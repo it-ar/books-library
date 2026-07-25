@@ -233,14 +233,16 @@
   // ===== العرض =====
   function cardHtml(b, tokens) {
     var authorHtml = b.author ? '<span aria-hidden="true">✍️</span> ' + highlight(b.author, tokens) : "مؤلف غير محدد";
-    var meta = '<span class="badge">' + escapeHtml(b.category) + "</span>";
-    if (b.copies != null) meta += '<span class="pill">النسخ: ' + fmt(b.copies) + "</span>";
+    var meta = "";
+    if (b.copies != null) meta += '<span class="pill strong">' + fmt(b.copies) + " نسخة</span>";
     if (b.year) meta += '<span class="pill">' + fmtYear(b.year) + "</span>";
     if (b.type) meta += '<span class="pill">' + escapeHtml(b.type) + "</span>";
+    if (b.box) meta += '<span class="shelfmark">صندوق ' + escapeHtml(b.box) + "</span>";
     return '<article class="card" tabindex="0" role="button" data-id="' + b.id + '" aria-label="' + escapeHtml(b.title) + '">' +
+      '<span class="card-cat">' + escapeHtml(b.category) + "</span>" +
       '<h3 class="card-title">' + highlight(b.title, tokens) + "</h3>" +
       '<div class="card-author' + (b.author ? "" : " empty") + '">' + authorHtml + "</div>" +
-      '<div class="card-meta">' + meta + "</div></article>";
+      (meta ? '<div class="card-meta">' + meta + "</div>" : "") + "</article>";
   }
 
   function render(reset) {

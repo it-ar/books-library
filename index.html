@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>قائمة الكتب — هيئة حقوق الإنسان</title>
-  <meta name="description" content="لوحة معلومات وبحث في قائمة كتب هيئة حقوق الإنسان" />
+  <meta name="description" content="الفهرس الإلكتروني: بحث وتصفّح قائمة كتب هيئة حقوق الإنسان" />
+  <link rel="stylesheet" href="assets/fonts.css" />
   <link rel="stylesheet" href="assets/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
 </head>
@@ -36,31 +37,37 @@
   <main>
     <!-- لوحة المعلومات -->
     <section class="dashboard" aria-label="لوحة المعلومات">
-      <div class="dash-inner">
-        <div class="stats" id="stats"></div>
-        <div class="top-authors" id="top-authors">
-          <h2 class="panel-title"><span aria-hidden="true">🏆</span> أكثر المؤلفين إنتاجًا</h2>
-          <ol class="top-authors-list" id="top-authors-list"></ol>
-        </div>
-      </div>
+      <div class="stats" id="stats"></div>
 
-      <!-- لوحة إصدارات الهيئة حسب النوع -->
-      <div class="hay-dash">
-        <div class="hay-head">
-          <h2 class="panel-title"><span aria-hidden="true">🏛️</span> إصدارات الهيئة حسب النوع</h2>
-          <p class="hay-sub" id="hay-sub"></p>
-        </div>
-        <div class="hay-types" id="hay-types"></div>
+      <div class="dash-grid">
+        <section class="panel top-authors" id="top-authors" aria-label="أكثر المؤلفين">
+          <div class="panel-head">
+            <span class="eyebrow">المؤلفون</span>
+            <h2 class="panel-title">أكثر المؤلفين إنتاجًا</h2>
+          </div>
+          <ol class="top-authors-list" id="top-authors-list"></ol>
+        </section>
+
+        <section class="panel hay-dash" aria-label="إصدارات الهيئة حسب النوع">
+          <div class="panel-head hay-head">
+            <div>
+              <span class="eyebrow">إصدارات الهيئة</span>
+              <h2 class="panel-title">التوزيع حسب النوع</h2>
+            </div>
+            <p class="hay-sub" id="hay-sub"></p>
+          </div>
+          <div class="hay-types" id="hay-types"></div>
+        </section>
       </div>
     </section>
 
     <section class="controls" aria-label="أدوات التصفية">
-      <div class="controls-inner">
-        <div class="chips" id="category-chips" role="tablist" aria-label="التصنيفات"></div>
-      </div>
+      <div class="section-label"><span class="eyebrow">التصنيفات</span></div>
+      <div class="chips" id="category-chips" role="tablist" aria-label="التصنيفات"></div>
+
       <div class="controls-row">
         <div class="author-filter" id="author-filter">
-          <label for="author-search" class="af-label">فلترة بالمؤلف:</label>
+          <label for="author-search" class="af-label">فلترة بالمؤلف</label>
           <div class="af-box">
             <input id="author-search" type="text" autocomplete="off" placeholder="اكتب اسم المؤلف…"
                    aria-label="فلترة بالمؤلف" role="combobox" aria-expanded="false" aria-controls="author-list" />
@@ -69,12 +76,12 @@
           </div>
         </div>
         <label class="sort-field">
-          <span>ترتيب:</span>
+          <span>ترتيب حسب</span>
           <select id="sort" aria-label="ترتيب النتائج">
-            <option value="title">حسب الاسم (أ-ي)</option>
-            <option value="author">حسب المؤلف</option>
-            <option value="copies">حسب عدد النسخ</option>
-            <option value="category">حسب التصنيف</option>
+            <option value="title">الاسم (أ-ي)</option>
+            <option value="author">المؤلف</option>
+            <option value="copies">عدد النسخ</option>
+            <option value="category">التصنيف</option>
           </select>
         </label>
       </div>
@@ -94,7 +101,9 @@
   </main>
 
   <footer class="site-footer">
-    <p>قائمة كتب هيئة حقوق الإنسان · <span id="footer-count"></span></p>
+    <div class="footer-inner">
+      <p>قائمة كتب هيئة حقوق الإنسان · <span id="footer-count"></span></p>
+    </div>
   </footer>
 
   <!-- نافذة تفاصيل الكتاب -->
