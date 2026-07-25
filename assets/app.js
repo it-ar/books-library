@@ -41,6 +41,9 @@
   // ===== أدوات =====
   var arabicNum = new Intl.NumberFormat("ar-EG");
   function fmt(n) { return arabicNum.format(n); }
+  // السنة بلا فاصلة آلاف (٢٠١٤ لا ٢٬٠١٤)
+  var yearNum = new Intl.NumberFormat("ar-EG", { useGrouping: false });
+  function fmtYear(n) { return yearNum.format(n); }
   var coll = new Intl.Collator("ar");
 
   function normChar(ch) {
@@ -193,7 +196,7 @@
     var authorHtml = b.author ? '<span aria-hidden="true">✍️</span> ' + highlight(b.author, tokens) : "مؤلف غير محدد";
     var meta = '<span class="badge">' + escapeHtml(b.category) + "</span>";
     if (b.copies != null) meta += '<span class="pill">النسخ: ' + fmt(b.copies) + "</span>";
-    if (b.year) meta += '<span class="pill">' + fmt(b.year) + "</span>";
+    if (b.year) meta += '<span class="pill">' + fmtYear(b.year) + "</span>";
     if (b.type) meta += '<span class="pill">' + escapeHtml(b.type) + "</span>";
     return '<article class="card" tabindex="0" role="button" data-id="' + b.id + '" aria-label="' + escapeHtml(b.title) + '">' +
       '<h3 class="card-title">' + highlight(b.title, tokens) + "</h3>" +
@@ -309,7 +312,7 @@
     items += dlgItem("المؤلف", b.author || "غير محدد");
     if (b.copies != null) items += dlgItem("عدد النسخ", fmt(b.copies));
     if (b.box) items += dlgItem("رقم الصندوق", b.box);
-    if (b.year) items += dlgItem("سنة الإصدار", fmt(b.year));
+    if (b.year) items += dlgItem("سنة الإصدار", fmtYear(b.year));
     if (b.type) items += dlgItem("النوع", b.type);
     el.dialogBody.innerHTML =
       '<span class="badge dlg-badge">' + escapeHtml(b.category) + "</span>" +
