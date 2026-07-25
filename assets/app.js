@@ -339,9 +339,8 @@
       el.count.textContent = "لم يتم العثور على ملف البيانات (assets/books-data.js). شغّل أداة التحويل أولًا.";
       return;
     }
-    var s = computeStats();
-    el.subtitle.textContent = fmt(s.books) + " كتاب · " + fmt(s.authors) + " مؤلف · " + fmt(s.categories) + " تصنيفًا";
-    el.footerCount.textContent = fmt(s.books) + " كتاب";
+    el.subtitle.textContent = "هيئة حقوق الإنسان";
+    el.footerCount.textContent = fmt(ALL.length) + " كتاب";
 
     renderStats();
     renderTopAuthors();

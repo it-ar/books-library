@@ -22,6 +22,7 @@ import sys
 import json
 import os
 import re
+from collections import defaultdict, Counter
 
 try:
     import openpyxl
@@ -151,6 +152,48 @@ def parse_hay_sheet(ws):
     return books
 
 
+def author_group_key(name):
+    """مفتاح تجميع يوحّد صور الهمزة على الألف والمسافات الزائدة فقط.
+    يدمج مثل «الامم» و«الأمم»، ولا يمسّ اختلافات الحروف الحقيقية."""
+    s = re.sub(r"\s+", " ", name.strip())
+    s = re.sub(r"[أإآٱ]", "ا", s)  # توحيد الألف بأشكال الهمزة
+    return s
+
+
+def canonicalize_authors(books):
+    """يدمج أسماء المؤلفين المتطابقة عدا اختلاف الهمزة/المسافات، ويختار
+    التهجئة الأكثر تكرارًا (ثم الأكثر التزامًا بالهمزة) اسمًا موحّدًا."""
+    groups = defaultdict(Counter)
+    for b in books:
+        a = b.get("author", "")
+        if not a:
+            continue
+        disp = re.sub(r"\s+", " ", a.strip())
+        groups[author_group_key(disp)][disp] += 1
+
+    canonical = {}
+    for key, counter in groups.items():
+        def score(item):
+            disp, cnt = item
+            hamza = len(re.findall(r"[أإآ]", disp))  # تفضيل التهجئة المهموزة عند التعادل
+            return (cnt, hamza, len(disp))
+        canonical[key] = max(counter.items(), key=score)[0]
+
+    changed = 0
+    for b in books:
+        a = b.get("author", "")
+        if not a:
+            continue
+        disp = re.sub(r"\s+", " ", a.strip())
+        new = canonical.get(author_group_key(disp), disp)
+        if new != a:
+            changed += 1
+        b["author"] = new
+    before = len(groups) + sum(len(c) - 1 for c in groups.values())
+    after = len(groups)
+    return changed, before, after
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit("الاستخدام: python3 tools/convert_excel.py <ملف.xlsx>")
@@ -166,6 +209,9 @@ def main():
             all_books.extend(parse_hay_sheet(ws))
         else:
             all_books.extend(parse_category_sheet(ws))
+
+    # توحيد أسماء المؤلفين المختلفة في الهمزة فقط
+    changed, before, after = canonicalize_authors(all_books)
 
     # ترقيم فريد
     for i, b in enumerate(all_books, 1):
@@ -200,6 +246,8 @@ def main():
     print("تم إنشاء البيانات بنجاح")
     print("إجمالي الكتب:", len(all_books))
     print("عدد التصنيفات:", len(cats))
+    print(f"توحيد المؤلفين (اختلاف الهمزة): عُدّلت {changed} إشارة، "
+          f"المؤلفون قبل {before} وبعد {after} (دُمج {before - after})")
     for c, n in sorted(cats.items(), key=lambda x: -x[1]):
         print(f"  {c}: {n}")
     print("\nالملفات:")
